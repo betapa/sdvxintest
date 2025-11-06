@@ -6,17 +6,6 @@ from bs4 import BeautifulSoup, Comment
 from notion_client import Client
 from notion_client.errors import APIResponseError
 
-# --- [최종 진단 코드] ---
-# 스크립트가 임포트한 'notion_client' 모듈의 실제 파일 위치를 출력합니다.
-try:
-    import notion_client
-    print(f"\n[최종 진단] 임포트된 'notion_client' 모듈의 실제 파일 경로:")
-    print(f"-> {notion_client.__file__}\n")
-except Exception as e:
-    print(f"\n[최종 진단] 'notion_client' 임포트 실패: {e}\n")
-# -------------------------
-
-
 # --- 1. 설정 --- (이하 동일)
 BASE_URL = "https://sdvx.in/sort/sort_{level}.htm"
 SITE_DOMAIN = "https://sdvx.in"
@@ -88,7 +77,7 @@ def main():
         return
 
     try:
-        notion_client = Client(auth=NOTION_API_KEY)
+        client_instance = Client(auth=NOTION_API_KEY)
         total_items_processed = 0
 
         # 1부터 20까지 (TOTAL_LEVELS) 루프
@@ -138,7 +127,7 @@ def main():
 
                         final_link = f"{SITE_DOMAIN}/{part1}/{part2_lower}.htm"
                         
-                        update_notion_page(notion_client, name, level_str, final_link)
+                        update_notion_page(client_instance, name, level_str, final_link)
                         page_item_count += 1
                         total_items_processed += 1
 
