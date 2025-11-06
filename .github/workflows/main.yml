@@ -37,4 +37,4 @@ jobs:
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           DATABASE_ID: ${{ secrets.DATABASE_ID }}
         run: |
-          python update_notion.py # 2단계에서 저장한 Python 스크립트 파일명
+          python scrap.py # 2단계에서 저장한 Python 스크립트 파일명
