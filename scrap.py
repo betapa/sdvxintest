@@ -140,7 +140,7 @@ def main():
                         total_items_processed += 1
 
                     except Exception as e_item:
-                        print(f"  [경고] {level_str}레벨의 특정 항목 파싱 중 오류 발생: {e_item} (항목 건너뜀)")
+                        print(f"  [경고] {level_str}레벨의 특정 항목 파싱 중 오류 발생: {e_item} (항목 건너뜀)")
                 
                 print(f"-> Level {level_str}에서 {page_item_count}개의 항목을 처리했습니다.")
 
@@ -148,9 +148,9 @@ def main():
                 time.sleep(1)
 
             except requests.exceptions.RequestException as e_page:
-                print(f"  [오류] {URL} 페이지를 가져오는 데 실패했습니다: {e_page} (Level 건너뜀)")
+                print(f"  [오류] {URL} 페이지를 가져오는 데 실패했습니다: {e_page} (Level 건너뜀)")
             except Exception as e_parse:
-                print(f"  [오류] {URL} 페이지 파싱 중 알 수 없는 오류 발생: {e_parse} (Level 건너뜀)")
+                print(f"  [오류] {URL} 페이지 파싱 중 알 수 없는 오류 발생: {e_parse} (Level 건너뜀)")
 
         print("\n--- 모든 페이지 처리 완료 ---")
         print(f"성공적으로 총 {total_items_processed}개의 항목을 Notion DB에서 처리/갱신했습니다.")
