@@ -4,6 +4,7 @@ import re
 import time
 from bs4 import BeautifulSoup, Comment
 from notion_client import Client
+from notion_client.errors import APIResponseError # [개선] Notion API 오류를 잡기 위해 추가
 
 # --- 1. 설정 ---
 
@@ -30,8 +31,20 @@ def update_notion_page(notion, name, level, link):
     """
     Notion DB를 조회하여 'Link'가 없으면 새 페이지를 생성, 있으면 갱신합니다.
     """
+    
+    # --- [디버깅 추가 1] ---
+    # 함수가 올바른 인수로 호출되었는지 확인
+    print(f"  [Debug] 함수 진입: Name='{name}', Level='{level}', Link='{link}'")
+    # -------------------------
+
     try:
         # 1. 'Link' 속성을 기준으로 DB에 데이터가 있는지 조회
+        
+        # --- [디버깅 추가 2] ---
+        # 오류가 발생하는 정확한 지점 확인
+        print(f"  [Debug] '{name}'의 notion.databases.query 실행 직전...")
+        # -------------------------
+
         query_response = notion.databases.query(
             database_id=DATABASE_ID,
             filter={
@@ -41,6 +54,11 @@ def update_notion_page(notion, name, level, link):
                 }
             }
         )
+        
+        # --- [디버깅 추가 3] ---
+        # query가 성공했는지 확인
+        print(f"  [Debug] '{name}'의 query 실행 성공. (결과 {len(query_response['results'])}개)")
+        # -------------------------
 
         # 2. Notion API에 전송할 데이터 포맷 정의
         properties_data = {
@@ -66,8 +84,17 @@ def update_notion_page(notion, name, level, link):
         # Notion API 속도 제한 (초당 평균 3회)을 준수하기 위해 대기
         time.sleep(0.5)
 
+    # [개선] Notion API 오류를 더 구체적으로 잡습니다.
+    except APIResponseError as e:
+        print(f"  [Notion API 오류] {name} (Lv: {level}) 처리 중 오류 발생: {e}")
+    
+    # [개선] 그 외 모든 오류
     except Exception as e:
-        print(f"  [Notion 오류] {name} (Lv: {level}) 처리 중 오류 발생: {e}")
+        # --- [디버깅 추가 4] ---
+        # 오류 발생 시 어떤 데이터가 문제였는지 다시 출력
+        print(f"  [Debug] 오류 발생. 전달된 값: Name='{name}', Level='{level}'")
+        # -------------------------
+        print(f"  [Notion 기타 오류] {name} (Lv: {level}) 처리 중 오류 발생: {e}")
 
 # --- 3. 메인 스크래핑 및 실행 로직 ---
 
@@ -108,8 +135,16 @@ def main():
                 for tag in script_tags:
                     try:
                         # Part 1 (폴더 경로)
-                        src_path = tag['src']
-                        part1 = src_path.split('/')[1] # '03'
+                        # [개선] .get()을 사용해 'src'가 없는 경우에도 오류 방지
+                        src_path = tag.get('src') 
+                        if not src_path:
+                            continue
+                        
+                        split_path = src_path.split('/')
+                        if len(split_path) < 2:
+                            continue # 경로가 예상과 다르면 건너뜀
+                        
+                        part1 = split_path[1] # '03'
                         
                         # Part 2 (파일 이름)
                         next_script_tag = tag.find_next_sibling('script')
