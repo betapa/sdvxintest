@@ -46,7 +46,6 @@ def update_notion_page(notion, name, level, link):
         properties_data = {
             PROP_NAME: {"title": [{"text": {"content": name}}]},
             PROP_LEVEL: {"rich_text": [{"text": {"content": level}}]}, # '텍스트' 속성용
-            # PROP_LEVEL: {"number": int(level)}, # '숫자' 속성용 (이 경우 level_str을 int로 변환 필요)
             PROP_LINK: {"url": link}
         }
 
@@ -81,6 +80,7 @@ def main():
         return
 
     try:
+        # [원인 2]의 올바른 Client(O) 사용 (APIClient(X)가 아님)
         notion_client = Client(auth=NOTION_API_KEY)
         total_items_processed = 0
 
