@@ -23,18 +23,29 @@ jobs:
         with:
           python-version: '3.10'
 
-      # 3. 필요한 Python 라이브러리 설치
-      # (requests, beautifulsoup4, notion-client)
+      # 3. 필요한 Python 라이브러리 설치 (캐시 삭제 포함)
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --upgrade requests beautifulsoup4 "notion-client>=1.0.0"
+          # (추가) 혹시 모를 이전 버전 강제 삭제
+          python -m pip uninstall -y notion-client
+          # (추가) pip 캐시 강제 삭제
+          python -m pip cache purge
+          # (수정) --no-cache-dir 추가하여 캐시 사용 방지
+          python -m pip install --no-cache-dir --upgrade requests beautifulsoup4 "notion-client>=1.0.0"
 
-      # 4. 스크래핑 및 Notion 갱신 스크립트 실행
+      # 4. (추가) 설치된 버전을 확인하여 디버깅합니다.
+      - name: Check installed notion-client version
+        run: |
+          echo "Verifying installed notion-client version:"
+          python -m pip show notion-client
+          
+      # 5. 스크래핑 및 Notion 갱신 스크립트 실행 (이전 4단계)
       - name: Run Python script
         env:
-          # 3단계에서 설정한 GitHub Secrets를 스크립트의 환경 변수로 주입
+          # GitHub Secrets를 스크립트의 환경 변수로 주입
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           DATABASE_ID: ${{ secrets.DATABASE_ID }}
         run: |
-          python scrap.py # 2단계에서 저장한 Python 스크립트 파일명
+          # yml 파일에 정의된 대로 'scrap.py'를 실행합니다.
+          python scrap.py
