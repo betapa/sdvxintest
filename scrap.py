@@ -67,7 +67,7 @@ def update_notion_page(notion, name, level, link):
         # 2. Notion API에 전송할 데이터 포맷 정의 (변경 없음)
         properties_data = {
             PROP_NAME: {"title": [{"text": {"content": name}}]},
-            PROP_LEVEL: {"rich_text": [{"text": {"content": level}}]},
+            PROP_LEVEL: {"number": int(level)},
             PROP_LINK: {"url": link}
         }
 
