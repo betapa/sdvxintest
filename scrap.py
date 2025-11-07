@@ -1,13 +1,11 @@
 import os
-import requests # requests는 이미 상단에 import 되어 있습니다.
+import requests
 import re
 import time
 from bs4 import BeautifulSoup, Comment
 from notion_client import Client
 from notion_client.errors import APIResponseError
 
-# --- 1. 설정 ---
-# (이 부분은 변경 없음)
 BASE_URL = "https://sdvx.in/sort/sort_{level}.htm"
 SITE_DOMAIN = "https://sdvx.in"
 TOTAL_LEVELS = 20
@@ -114,7 +112,7 @@ def main():
         total_items_processed = 0
 
         # 1부터 20까지 (TOTAL_LEVELS) 루프
-        for i in range(1, TOTAL_LEVELS + 1):
+        for i in range(15, TOTAL_LEVELS + 1):
             level_str = f"{i:02d}"
             URL = BASE_URL.format(level=level_str)
             
