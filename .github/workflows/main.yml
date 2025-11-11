@@ -1,14 +1,13 @@
-name: SDVX 모든 레벨 스크래핑 및 Notion 갱신
+name: SDVX 모든 레벨 스크래핑 및 GitHub에 저장
 
 on:
   schedule:
     - cron: '0 0 1,15 * *'
   
-  # GitHub Actions 탭에서 수동으로 실행 가능하도록 설정
   workflow_dispatch:
 
 jobs:
-  scrape-and-update:
+  scrape-and-save:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,21 +22,24 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          
-          python -m pip uninstall -y notion || true
-          python -m pip uninstall -y notion-client || true
-          python -m pip cache purge
-          
-          python -m pip install --no-cache-dir --ignore-installed --upgrade requests beautifulsoup4 "notion-client>=1.0.0"
-      - name: Check installed notion-client version
-        run: |
-          echo "Verifying installed notion-client version:"
-          python -m pip show notion-client
-          
+          # notion-client 관련 설치/삭제 구문 모두 제거
+          python -m pip install --no-cache-dir --upgrade requests beautifulsoup4
+
       - name: Run Python script
-        env:
-          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
-          DATABASE_ID: ${{ secrets.DATABASE_ID }}
         run: |
-          # yml 파일에 정의된 대로 'scrap.py'를 실행합니다.
           python scrap.py
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          
+          # 파일이 변경되었는지 확인
+          if git diff --quiet sdvx_data.csv; then
+            echo "데이터 변경 없음. 커밋을 건너뜁니다."
+          else
+            echo "데이터 변경 감지. 커밋 및 푸시를 수행합니다."
+            git add sdvx_data.csv
+            git commit -m "Update sdvx_data.csv"
+            git push
+          fi
