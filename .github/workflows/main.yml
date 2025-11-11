@@ -22,24 +22,41 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # notion-client 관련 설치/삭제 구문 모두 제거
           python -m pip install --no-cache-dir --upgrade requests beautifulsoup4
 
       - name: Run Python script
         run: |
           python scrap.py
 
+      - name: Check for created file
+        run: |
+          echo "--- 현재 디렉터리의 파일 목록 ---"
+          ls -l
+          echo "-----------------------------------"
+          
       - name: Commit and push changes
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           
-          # 파일이 변경되었는지 확인
-          if git diff --quiet sdvx_data.csv; then
-            echo "데이터 변경 없음. 커밋을 건너뜁니다."
+          # 'sdvxin_data.csv' 파일이 존재하는지 먼저 확인
+          if [ -f "sdvxin_data.csv" ]; then
+            echo "'sdvxin_data.csv' 파일을 찾았습니다. 변경 사항을 확인합니다."
+            
+            # 'git add'를 먼저 실행하여 새 파일이거나 변경된 파일을 Stage에 올림
+            git add sdvxin_data.csv
+            
+            # 'git diff --staged'로 Stage에 커밋할 변경 사항이 있는지 확인
+            if git diff --staged --quiet; then
+              echo "데이터 변경 없음. (이미 최신 상태) 커밋을 건너뜁니다."
+            else
+              echo "데이터 변경 감지. 커밋 및 푸시를 수행합니다."
+              git commit -m "Update sdvxin_data.csv"
+              git push
+            fi
           else
-            echo "데이터 변경 감지. 커밋 및 푸시를 수행합니다."
-            git add sdvx_data.csv
-            git commit -m "Update sdvx_data.csv"
-            git push
+            echo "오류: 'sdvxin_data.csv' 파일이 생성되지 않았습니다."
+            echo "'Run Python script' 단계의 로그를 확인하여 'scrap.py'가 정상적으로 완료되었는지 확인하세요."
+            # 파일이 없으면 오류를 발생시켜 워크플로우를 실패 처리
+            exit 1
           fi
