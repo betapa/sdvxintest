@@ -5,7 +5,7 @@ import time
 import csv
 from bs4 import BeautifulSoup, Comment
 
-printf("write at github repository as csv")
+print("write at github repository as csv")
 
 BASE_URL = "https://sdvx.in/sort/sort_{level}.htm"
 SITE_DOMAIN = "https://sdvx.in"
