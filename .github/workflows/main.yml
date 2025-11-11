@@ -1,4 +1,4 @@
-name: SDVX 모든 레벨 스크래핑 및 GitHub에 저장
+name: sdvx.in 스크래핑 및 csv 저장
 
 on:
   schedule:
