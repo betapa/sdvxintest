@@ -2,92 +2,30 @@ import os
 import requests
 import re
 import time
+import csv
 from bs4 import BeautifulSoup, Comment
-from notion_client import Client
-from notion_client.errors import APIResponseError
+
+print("write at github repository as csv")
 
 BASE_URL = "https://sdvx.in/sort/sort_{level}.htm"
 SITE_DOMAIN = "https://sdvx.in"
 TOTAL_LEVELS = 20
-NOTION_API_KEY = os.environ.get("NOTION_API_KEY")
-DATABASE_ID = os.environ.get("DATABASE_ID")
-PROP_NAME = "Name"
-PROP_LEVEL = "Level"
-PROP_LINK = "Link"
+
 sort_pattern = re.compile(r'SORT(.*?)\(\);')
 
-def update_notion_page(notion, name, level, link):
-    try:
-        print(f"  [Debug] '{name}'의 DB 쿼리 실행 (requests 직접 호출)...")
-        
-        query_url = f"https://api.notion.com/v1/databases/{DATABASE_ID}/query"
-        
-        # Notion API 헤더 설정
-        headers = {
-            "Authorization": f"Bearer {NOTION_API_KEY}",
-            "Notion-Version": "2022-06-28",
-            "Content-Type": "application/json"
-        }
-        
-        query_payload = {
-            "filter": {
-                "property": PROP_LINK,
-                "url": {
-                    "equals": link
-                }
-            }
-        }
-        
-        # API 요청
-        response = requests.post(query_url, headers=headers, json=query_payload)
-        response.raise_for_status() #
-        query_response = response.json()
-        
-        print(f"  [Debug] '{name}'의 query 실행 성공. (결과 {len(query_response.get('results', []))}개)")
-
-        # 2. Notion API에 전송할 데이터 포맷 정의 (변경 없음)
-        properties_data = {
-            PROP_NAME: {"title": [{"text": {"content": name}}]},
-            PROP_LEVEL: {"number": int(level)},
-            PROP_LINK: {"url": link}
-        }
-
-        # 3. 결과에 따라 생성 또는 갱신 (페이지 생성/수정은 notion_client 객체 그대로 사용)
-        if query_response.get("results"):
-            page_id = query_response["results"][0]["id"]
-            notion.pages.update(page_id=page_id, properties=properties_data)
-            print(f"  [갱신] {name} (Lv: {level})")
-        else:
-            notion.pages.create(
-                parent={"database_id": DATABASE_ID},
-                properties=properties_data
-            )
-            print(f"  [생성] {name} (Lv: {level})")
-
-        time.sleep(0.5)
-
-    except APIResponseError as e:
-        print(f"  [Notion API 오류] {name} (Lv: {level}) 처리 중 오류 발생: {e}")
-    except requests.exceptions.RequestException as e_req:
-        print(f"  [Requests 오류] {name} (Lv: {level}) 쿼리 중 오류 발생: {e_req}")
-    except Exception as e:
-        print(f"  [Debug] 오류 발생. 전달된 값: Name='{name}', Level='{level}'")
-        print(f"  [Notion 기타 오류] {name} (Lv: {level}) 처리 중 오류 발생: {e}")
+OUTPUT_CSV_FILE = "sdvxin_data.csv"
 
 def main():
-    print(f"총 {TOTAL_LEVELS}개 레벨의 데이터 수집 및 Notion 갱신을 시작합니다...")
+    print(f"총 {TOTAL_LEVELS}개 레벨의 데이터 수집을 시작합니다...")
 
-    if not NOTION_API_KEY or not DATABASE_ID:
-        print("오류: NOTION_API_KEY 또는 DATABASE_ID가 GitHub Secrets에 설정되지 않았습니다.")
-        print("스크립트를 종료합니다.")
-        return
+    all_songs_data = []
+
+    all_songs_data.append(["Name", "Level", "Link"])
 
     try:
-        client_instance = Client(auth=NOTION_API_KEY)
         total_items_processed = 0
 
-        # 15~20렙까지만 수정
-        for i in range(15, TOTAL_LEVELS + 1):
+        for i in range(1, TOTAL_LEVELS + 1):
             level_str = f"{i:02d}"
             URL = BASE_URL.format(level=level_str)
             
@@ -113,9 +51,8 @@ def main():
                         split_path = src_path.split('/')
                         if len(split_path) < 2:
                             continue 
-                        
                         part1 = split_path[1]
-                        
+
                         next_script_tag = tag.find_next_sibling('script')
                         if not next_script_tag or not next_script_tag.string:
                             continue
@@ -124,20 +61,18 @@ def main():
                         match = sort_pattern.search(script_content)
                         if not match:
                             continue
-                            
-                        part2_upper = match.group(1) 
-                        part2_lower = part2_upper.lower() 
+                        part2_upper = match.group(1)
+                        part2_lower = part2_upper.lower()
 
                         comment = next_script_tag.find_next_sibling(string=lambda t: isinstance(t, Comment))
                         if not comment:
                             continue
-                        
                         name = comment.strip()
 
-                        # 최종 URL 조합
                         final_link = f"{SITE_DOMAIN}/{part1}/{part2_lower}.htm"
                         
-                        update_notion_page(client_instance, name, level_str, final_link)
+                        all_songs_data.append([name, level_str, final_link])
+                        
                         page_item_count += 1
                         total_items_processed += 1
 
@@ -145,7 +80,6 @@ def main():
                         print(f"  [경고] {level_str}레벨의 특정 항목 파싱 중 오류 발생: {e_item} (항목 건너뜀)")
                 
                 print(f"-> Level {level_str}에서 {page_item_count}개의 항목을 처리했습니다.")
-
                 time.sleep(1)
 
             except requests.exceptions.RequestException as e_page:
@@ -154,11 +88,16 @@ def main():
                 print(f"  [오류] {URL} 페이지 파싱 중 알 수 없는 오류 발생: {e_parse} (Level 건너뜀)")
 
         print("\n--- 모든 페이지 처리 완료 ---")
-        print(f"성공적으로 총 {total_items_processed}개의 항목을 Notion DB에서 처리/갱신했습니다.")
+        
+        try:
+            with open(OUTPUT_CSV_FILE, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                writer.writerows(all_songs_data)
+            print(f"성공적으로 총 {total_items_processed}개의 항목을 '{OUTPUT_CSV_FILE}' 파일에 저장했습니다.")
+            
+        except Exception as e_csv:
+            print(f"  [오류] CSV 파일 저장 중 오류 발생: {e_csv}")
 
-    except ImportError:
-        print("오류: 'requests', 'beautifulsoup4', 'notion-client' 라이브러리가 설치되지 않았습니다.")
-        print("requirements.txt에 이 라이브러리들을 추가해주세요.")
     except Exception as e_final:
         print(f"스크립트 실행 중 치명적인 오류가 발생했습니다: {e_final}")
 
